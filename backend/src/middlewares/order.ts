@@ -1,6 +1,7 @@
 import { celebrate, Joi, Segments } from 'celebrate';
 import { RequestHandler } from 'express';
 import Product from '../models/product';
+import BadRequestError from '../errors/bad-request-error';
 
 const validateOrderBody = celebrate(
   {
@@ -16,7 +17,7 @@ const validateOrderBody = celebrate(
   { convert: false }
 );
 
-const validateOrderProducts: RequestHandler = async (req, res, next) => {
+const validateOrderProducts: RequestHandler = async (req, _res, next) => {
   const { items, total } = req.body as { items: string[]; total: number };
 
   try {
@@ -27,13 +28,13 @@ const validateOrderProducts: RequestHandler = async (req, res, next) => {
     const missingId = items.find((id) => !productsById.has(id.toLowerCase()));
 
     if (missingId) {
-      res.status(400).json({ error: `Товар ${missingId} не найден` });
+      next(new BadRequestError(`Товар ${missingId} не найден`));
       return;
     }
 
     const unavailableId = items.find((id) => productsById.get(id.toLowerCase())?.price === null);
     if (unavailableId) {
-      res.status(400).json({ error: `Товар ${unavailableId} не продается` });
+      next(new BadRequestError(`Товар ${unavailableId} не продается`));
       return;
     }
 
@@ -43,13 +44,13 @@ const validateOrderProducts: RequestHandler = async (req, res, next) => {
     );
 
     if (actualTotal !== total) {
-      res.status(400).json({ error: 'Сумма заказа не совпадает со стоимостью товаров' });
+      next(new BadRequestError('Сумма заказа не совпадает со стоимостью товаров'));
       return;
     }
 
     next();
   } catch (error) {
-    res.status(500).json({ error: 'Не удалось проверить товары заказа' });
+    next(error);
   }
 };
 

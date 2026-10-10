@@ -1,17 +1,19 @@
 import { RequestHandler } from 'express';
 import mongoose from 'mongoose';
 import Product from '../models/product';
+import BadRequestError from '../errors/bad-request-error';
+import ConflictError from '../errors/conflict-error';
 
-export const getProducts: RequestHandler = async (_req, res) => {
+export const getProducts: RequestHandler = async (_req, res, next) => {
   try {
     const items = await Product.find();
     res.json({ total: items.length, items });
   } catch (error) {
-    res.status(500).json({ error: 'Не удалось получить товары' });
+    next(error);
   }
 };
 
-export const createProduct: RequestHandler = async (req, res) => {
+export const createProduct: RequestHandler = async (req, res, next) => {
   const { title, image, category, description, price } = req.body ?? {};
 
   try {
@@ -19,15 +21,15 @@ export const createProduct: RequestHandler = async (req, res) => {
     res.status(201).json(product);
   } catch (error) {
     if (error instanceof mongoose.Error.ValidationError) {
-      res.status(400).json({ error: error.message });
+      next(new BadRequestError('Ошибка валидации данных при создании товара'));
       return;
     }
 
-    if (error instanceof Error && 'code' in error && error.code === 11000) {
-      res.status(409).json({ error: 'Товар с таким названием уже существует' });
+    if (error instanceof Error && error.message.includes('E11000')) {
+      next(new ConflictError('Товар с таким названием уже существует'));
       return;
     }
 
-    res.status(500).json({ error: 'Не удалось создать товар' });
+    next(error);
   }
 };
