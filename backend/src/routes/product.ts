@@ -4,7 +4,7 @@ import {
   validateCreateProduct,
   validateObjectId,
   validateProductUpdate,
-} from '../middlewares/product';
+} from '../middlewares/product-validation';
 
 const router = Router();
 
