@@ -8,14 +8,17 @@ import productRouter from './routes/product';
 import orderRouter from './routes/order';
 import NotFoundError from './errors/not-found-error';
 import errorHandler from './middlewares/error-handler';
+import { errorLogger, requestLogger } from './middlewares/logger';
 
 const app = express();
+app.use(requestLogger);
 app.use(cors({ origin: ORIGIN_ALLOW, credentials: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/product', productRouter);
 app.use('/order', orderRouter);
 app.use((_req, _res, next) => next(new NotFoundError('Маршрут не найден')));
+app.use(errorLogger);
 app.use(errors());
 app.use(errorHandler);
 
