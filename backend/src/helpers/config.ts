@@ -1,4 +1,14 @@
 import dotenv from 'dotenv';
 
 dotenv.config();
-export const { PORT, DB_ADDRESS, ORIGIN_ALLOW, UPLOAD_PATH, UPLOAD_PATH_TEMP } = process.env;
+export const {
+  PORT,
+  DB_ADDRESS,
+  ORIGIN_ALLOW,
+  UPLOAD_PATH,
+  UPLOAD_PATH_TEMP,
+  AUTH_ACCESS_TOKEN_SECRET,
+  AUTH_REFRESH_TOKEN_SECRET,
+  AUTH_ACCESS_TOKEN_EXPIRY,
+  AUTH_REFRESH_TOKEN_EXPIRY,
+} = process.env;
