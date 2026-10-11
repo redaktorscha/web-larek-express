@@ -1,4 +1,5 @@
 import { ErrorRequestHandler } from 'express';
+import multer from 'multer';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   if (res.headersSent) {
@@ -7,7 +8,8 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   }
 
   const malformedJson = error instanceof SyntaxError && 'body' in error;
-  const statusCode = malformedJson ? 400 : error.statusCode || 500;
+  const statusCode =
+    malformedJson || error instanceof multer.MulterError ? 400 : error.statusCode || 500;
   let { message } = error;
 
   if (statusCode === 500) {

@@ -1,4 +1,5 @@
 import mongoose, { ObjectId } from 'mongoose';
+import { removeProductImage } from '../helpers/product-image';
 
 interface IImagePath {
   fileName: string;
@@ -48,6 +49,13 @@ const productSchema = new mongoose.Schema<IProduct>({
     default: null,
     min: 0,
   },
+});
+
+productSchema.post('findOneAndDelete', async function cleanupProductImage(product) {
+  if (!product?.image?.fileName) return;
+
+  const stillUsed = await this.model.findOne({ 'image.fileName': product.image.fileName });
+  if (!stillUsed) await removeProductImage(product.image.fileName);
 });
 
 export default mongoose.model<IProduct>('product', productSchema, 'weblarek');

@@ -11,6 +11,7 @@ import NotFoundError from './errors/not-found-error';
 import errorHandler from './middlewares/error-handler';
 import { errorLogger, requestLogger } from './middlewares/logger';
 import authRouter from './router/auth';
+import uploadRouter from './routes/upload';
 
 const app = express();
 app.use(requestLogger);
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/product', productRouter);
 app.use('/order', orderRouter);
 app.use('/auth', authRouter);
+app.use('/upload', uploadRouter);
 app.use((_req, _res, next) => next(new NotFoundError('Маршрут не найден')));
 app.use(errorLogger);
 app.use(errors());
