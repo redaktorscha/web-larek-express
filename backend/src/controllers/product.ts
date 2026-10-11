@@ -4,7 +4,12 @@ import Product from '../models/product';
 import BadRequestError from '../errors/bad-request-error';
 import ConflictError from '../errors/conflict-error';
 import NotFoundError from '../errors/not-found-error';
-import { ensureImageExists, removeProductImage, saveProductImage } from '../helpers/product-image';
+import {
+  ensureImageExists,
+  removeProductImage,
+  restoreProductImage,
+  saveProductImage,
+} from '../helpers/product-image';
 
 const editableFields = new Set(['title', 'image', 'category', 'description', 'price']);
 
@@ -19,18 +24,23 @@ export const getProducts: RequestHandler = async (_req, res, next) => {
 
 export const createProduct: RequestHandler = async (req, res, next) => {
   const { title, image, category, description, price } = req.body ?? {};
+  let imageMoved = false;
 
   try {
     await ensureImageExists(image.fileName);
+    imageMoved = await saveProductImage(image.fileName);
     const product = await Product.create({ title, image, category, description, price });
-    try {
-      await saveProductImage(image.fileName);
-    } catch (error) {
-      await Product.findByIdAndDelete(product._id);
-      throw error;
-    }
     res.status(201).json(product);
   } catch (error) {
+    if (imageMoved) {
+      try {
+        await restoreProductImage(image.fileName);
+      } catch (restoreError) {
+        next(restoreError);
+        return;
+      }
+    }
+
     if (error instanceof mongoose.Error.ValidationError) {
       next(new BadRequestError('Ошибка валидации данных при создании товара'));
       return;
@@ -64,6 +74,8 @@ export const updateProduct: RequestHandler = async (req, res, next) => {
     return;
   }
 
+  let imageMoved = false;
+  let productUpdated = false;
   try {
     if (updates.image) await ensureImageExists(updates.image.fileName);
     const previousProduct = await Product.findById(productId);
@@ -72,6 +84,7 @@ export const updateProduct: RequestHandler = async (req, res, next) => {
       return;
     }
 
+    if (updates.image) imageMoved = await saveProductImage(updates.image.fileName);
     const product = await Product.findByIdAndUpdate(
       productId,
       { $set: updates },
@@ -79,12 +92,11 @@ export const updateProduct: RequestHandler = async (req, res, next) => {
     );
 
     if (!product) {
-      next(new NotFoundError('Товар не найден'));
-      return;
+      throw new NotFoundError('Товар не найден');
     }
+    productUpdated = true;
 
     if (updates.image) {
-      await saveProductImage(updates.image.fileName);
       const previousImage = previousProduct.image.fileName;
       if (previousImage !== updates.image.fileName) {
         const stillUsed = await Product.exists({ 'image.fileName': previousImage });
@@ -94,6 +106,15 @@ export const updateProduct: RequestHandler = async (req, res, next) => {
 
     res.json(product);
   } catch (error) {
+    if (imageMoved && !productUpdated) {
+      try {
+        await restoreProductImage(updates.image.fileName);
+      } catch (restoreError) {
+        next(restoreError);
+        return;
+      }
+    }
+
     if (
       error instanceof mongoose.Error.ValidationError ||
       error instanceof mongoose.Error.CastError

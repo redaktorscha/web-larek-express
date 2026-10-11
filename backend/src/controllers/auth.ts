@@ -10,7 +10,6 @@ import User, { IUser } from '../models/user';
 import {
   clearRefreshCookie,
   createTokenPair,
-  getAccessUserId,
   getRefreshToken,
   getRefreshUserId,
   setRefreshCookie,
@@ -89,14 +88,9 @@ export const login: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const getCurrentUser: RequestHandler = async (req, res, next) => {
+export const getCurrentUser: RequestHandler = async (_req, res, next) => {
   try {
-    const userId = getAccessUserId(req);
-    if (!mongoose.isValidObjectId(userId)) {
-      next(new NotFoundError('Пользователь не найден'));
-      return;
-    }
-
+    const userId = res.locals.userId as string;
     const user = await User.findById(userId);
     if (!user) {
       next(new NotFoundError('Пользователь не найден'));

@@ -1,5 +1,5 @@
 import { constants } from 'fs';
-import { access, copyFile, mkdir, unlink } from 'fs/promises';
+import { access, copyFile, mkdir, rename, unlink } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_PATH_TEMP } from './config';
 import BadRequestError from '../errors/bad-request-error';
@@ -27,7 +27,17 @@ export const ensureImageExists = async (fileName: string): Promise<void> => {
   }
 };
 
-export const saveProductImage = async (fileName: string): Promise<void> => {
+const moveFile = async (source: string, destination: string): Promise<void> => {
+  try {
+    await rename(source, destination);
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'EXDEV') throw error;
+    await copyFile(source, destination, constants.COPYFILE_EXCL);
+    await unlink(source);
+  }
+};
+
+export const saveProductImage = async (fileName: string): Promise<boolean> => {
   const name = imageName(fileName);
   if (!name) throw new BadRequestError('Некорректный путь к изображению');
 
@@ -35,12 +45,21 @@ export const saveProductImage = async (fileName: string): Promise<void> => {
   try {
     await access(source, constants.R_OK);
   } catch {
-    return;
+    await ensureImageExists(fileName);
+    return false;
   }
 
   await mkdir(imagesDir, { recursive: true });
-  await copyFile(source, path.join(imagesDir, name));
-  await unlink(source);
+  await moveFile(source, path.join(imagesDir, name));
+  return true;
+};
+
+export const restoreProductImage = async (fileName: string): Promise<void> => {
+  const name = imageName(fileName);
+  if (!name) return;
+
+  await mkdir(tempDir, { recursive: true });
+  await moveFile(path.join(imagesDir, name), path.join(tempDir, name));
 };
 
 export const removeProductImage = async (fileName: string): Promise<void> => {
