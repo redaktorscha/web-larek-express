@@ -10,7 +10,7 @@ import orderRouter from './routes/order';
 import NotFoundError from './errors/not-found-error';
 import errorHandler from './middlewares/error-handler';
 import { errorLogger, requestLogger } from './middlewares/logger';
-import authRouter from './router/auth';
+import authRouter from './routes/auth';
 import uploadRouter from './routes/upload';
 
 const app = express();
@@ -30,6 +30,4 @@ app.use(errorHandler);
 
 mongoose.connect(String(DB_ADDRESS));
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+app.listen(PORT);
