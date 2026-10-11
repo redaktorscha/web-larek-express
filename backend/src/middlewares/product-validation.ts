@@ -14,6 +14,8 @@ const titleSchema = Joi.string().min(2).max(30).messages({
   'string.empty': 'Поле "title" должно быть заполнено',
 });
 
+const priceSchema = Joi.number().min(0).allow(null).prefs({ convert: true });
+
 export const validateCreateProduct = celebrate(
   {
     [Segments.BODY]: Joi.object({
@@ -25,7 +27,7 @@ export const validateCreateProduct = celebrate(
       description: Joi.string().required().messages({
         'string.empty': 'Поле "description" должно быть заполнено',
       }),
-      price: Joi.number().min(0).allow(null),
+      price: priceSchema,
     }).required(),
   },
   { convert: false }
@@ -50,7 +52,7 @@ export const validateProductUpdate = celebrate(
       image: imageSchema,
       category: Joi.string(),
       description: Joi.string(),
-      price: Joi.number().min(0).allow(null),
+      price: priceSchema,
     })
       .min(1)
       .required(),
